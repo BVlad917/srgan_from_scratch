@@ -52,4 +52,5 @@ class Generator(nn.Module):
         y = y + x  # (B, EMBED_SIZE, H, W)
         y = self.upsamples(y)  # (B, EMBED_SIZE, H * TOTAL_UPSCALE, W * TOTAL_UPSCALE)
         y = self.conv_after_upsample(y)  # (B, 3, H * TOTAL_UPSCALE, W * TOTAL_UPSCALE)
+        y = torch.sigmoid(y)  # (B, 3, H * TOTAL_UPSCALE, W * TOTAL_UPSCALE); pixel range (0, 1)
         return y
