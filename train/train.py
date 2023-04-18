@@ -84,15 +84,15 @@ def test_step(gen, test_dl, device, writer, writer_step, psnr_model):
             gt = batch["gt"].to(device)
             lr = batch["lq"].to(device)
 
+            # run the generator
+            sr = gen(lr)
+
             # get the batch PSNR and save it for later reference
-            batch_psnr = psnr_model(lr=lr, gt=gt)
+            batch_psnr = psnr_model(sr=sr, gt=gt)
             total_psnr = torch.cat((total_psnr, batch_psnr))
 
-            # plot the batch if it is the randomly chosen index
+            # plot the batch in tensorboard if it is the randomly chosen index
             if idx == batch_to_plot_idx:
-                # run the generator
-                sr = gen(lr)
-                # save in tensorboard
                 interleaved = torch.stack((gt, sr), dim=1).view(-1, *gt.shape[1:])
                 img_grid = torchvision.utils.make_grid(interleaved)
                 writer.add_image("GT High Resolution VS. PRED High Resolution", img_grid, global_step=writer_step)
