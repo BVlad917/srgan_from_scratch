@@ -1,3 +1,4 @@
+import random
 import time
 import torch
 import torchvision
@@ -16,7 +17,7 @@ def train_step(dl, disc, gen, opt_gen, opt_disc, bce, vgg_loss, mse, device):
     gen.train()
 
     start = time.time()
-    for idx, batch in enumerate(tqdm(dl, leave=True)):
+    for idx, batch in enumerate(tqdm(dl)):
         # Send data to GPU
         gt = batch["gt"].to(device)
         lr = batch["lq"].to(device)
@@ -69,21 +70,32 @@ def train_step(dl, disc, gen, opt_gen, opt_disc, bce, vgg_loss, mse, device):
     print(f"Disc loss: {total_disc_loss:.5f} | Gen loss: {total_gen_loss:.5f} | Time elapsed: {timer(start, end)}")
 
 
-def test_step(gen, test_dl, device, writer, writer_step):
-    gen.eval()  # put the generator in eval mode
+def test_step(gen, test_dl, device, writer, writer_step, psnr_model):
+    # randomly plot a batch
+    batch_to_plot_idx = random.randint(0, len(test_dl) - 1)
+    # tensor to keep track of the PSNR across all batches
+    total_psnr = torch.tensor(0)
+    # put the generator in eval mode
+    gen.eval()
     # turn on inference context manager
     with torch.inference_mode():
-        # get a batch
-        test_batch = next(iter(test_dl))
+        for idx, batch in enumerate(tqdm(test_dl)):
+            # send data to GPU
+            gt = batch["gt"].to(device)
+            lr = batch["lq"].to(device)
 
-        # send data to GPU
-        gt = test_batch["gt"].to(device)
-        lr = test_batch["lq"].to(device)
+            # get the batch PSNR and save it for later reference
+            batch_psnr = psnr_model(lr=lr, gt=gt)
+            total_psnr = torch.cat((total_psnr, batch_psnr))
 
-        # run the generator
-        sr = gen(lr)
+            # plot the batch if it is the randomly chosen index
+            if idx == batch_to_plot_idx:
+                # run the generator
+                sr = gen(lr)
+                # save in tensorboard
+                interleaved = torch.stack((gt, sr), dim=1).view(-1, *gt.shape[1:])
+                img_grid = torchvision.utils.make_grid(interleaved)
+                writer.add_image("GT High Resolution VS. PRED High Resolution", img_grid, global_step=writer_step)
 
-        # save in tensorboard
-        interleaved = torch.stack((gt, sr), dim=1).view(-1, *gt.shape[1:])
-        img_grid = torchvision.utils.make_grid(interleaved)
-        writer.add_image("GT High Resolution VS. PRED High Resolution", img_grid, global_step=writer_step)
+        total_psnr = total_psnr.mean()  # find the average PSNR across all batches
+        writer.add_scalar("PSNR across epochs", total_psnr, global_step=writer_step)
