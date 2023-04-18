@@ -66,7 +66,7 @@ def train_step(dl, disc, gen, opt_gen, opt_disc, bce, vgg_loss, mse, device):
     # Calculates loss per epoch and print out what's happening
     total_disc_loss /= len(dl)
     total_gen_loss /= len(dl)
-    print(f"Disc loss: {total_disc_loss:.5f} | Gen loss: {total_gen_loss:.2f}% | Time elapsed: {timer(start, end)}")
+    print(f"Disc loss: {total_disc_loss:.5f} | Gen loss: {total_gen_loss:.5f} | Time elapsed: {timer(start, end)}")
 
 
 def test_step(gen, test_dl, device, writer, writer_step):
@@ -86,4 +86,4 @@ def test_step(gen, test_dl, device, writer, writer_step):
         # save in tensorboard
         interleaved = torch.stack((gt, sr), dim=1).view(-1, *gt.shape[1:])
         img_grid = torchvision.utils.make_grid(interleaved)
-        writer.add_image("GT High Resolution VS. PRED High Resolution", img_grid, step=writer_step)
+        writer.add_image("GT High Resolution VS. PRED High Resolution", img_grid, global_step=writer_step)
