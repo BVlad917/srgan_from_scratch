@@ -74,7 +74,7 @@ def test_step(gen, test_dl, device, writer, writer_step, psnr_model):
     # randomly plot a batch
     batch_to_plot_idx = random.randint(0, len(test_dl) - 1)
     # tensor to keep track of the PSNR across all batches
-    total_psnr = torch.tensor(0)
+    total_psnr = torch.tensor(0, device=device)
     # put the generator in eval mode
     gen.eval()
     # turn on inference context manager
